@@ -10,6 +10,7 @@ RUN apt-get update \
     nmap \
     curl \
     tree \
+    speedtest-cli \
     netcat
 
 CMD ["bash"]
