@@ -1,0 +1,63 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  labels:
+    topology.kubernetes.io/zone: eu-west-2c
+    # topology.kubernetes.io/region: eu-west-2
+    provisioned-for: volume-mounter
+  name: volume-to-mount
+spec:
+  storageClassName: gp3
+  accessModes:
+    - ReadWriteOnce
+  awsElasticBlockStore:
+    fsType: ext4
+    volumeID: vol-xxxxxxxxxxxxxxx
+  capacity:
+    storage: 1Gi
+  persistentVolumeReclaimPolicy: Retain
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: toolbox-pvc
+spec:
+  storageClassName: gp3
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      provisioned-for: volume-mounter
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: volume-mounter
+spec:
+  restartPolicy: Never
+  containers:
+    - name: toolbox
+      image: bboykov/toolbox:latest
+      command:
+        - sleep
+        - infinity
+      volumeMounts:
+        - name: vol
+          mountPath: /vol
+      resources:
+        limits:
+          cpu: 100m
+          memory: 200Mi
+        requests:
+          cpu: 50m
+          memory: 100Mi
+  volumes:
+    - name: vol
+      persistentVolumeClaim:
+        claimName: toolbox-pvc

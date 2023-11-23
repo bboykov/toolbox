@@ -2,7 +2,6 @@
 
 ![Docker](https://github.com/bboykov/toolbox/workflows/Docker/badge.svg)
 
-
 ## Usage
 
 ```sh
@@ -21,7 +20,6 @@ kubectl run -i --tty --rm toolbox \
 ```
 
 ## Tools on demand
-
 
 ```sh
 # Helm
