@@ -1,7 +1,19 @@
 name: Docker
 
-# Controls when the action will run. Triggers the workflow on push or pull request 
-# events but only for the master branch
+# Docker Build and Publish Workflow
+#
+# This workflow builds the toolbox Docker image, runs security vulnerability scanning,
+# and publishes the image to Docker Hub. It runs on:
+# - Push to master branch
+# - Pull requests targeting master branch
+# - Release creation
+# - GitHub Pages builds
+#
+# Steps:
+# 1. Build Docker image with Buildx caching
+# 2. Scan for vulnerabilities with Trivy (SARIF upload to Security tab)
+# 3. Run Trivy table scan (fails on CRITICAL/HIGH vulnerabilities, except ignored)
+# 4. Push image to Docker Hub with latest and SHA tags (only on master pushes)
 on:
   push:
     branches: [ master ]
@@ -17,15 +29,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
-    # https://www.docker.com/blog/first-docker-github-action-is-here/
-    - name: Build and push Docker images
-      uses: docker/build-push-action@v1.0.0
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-        repository: bboykov/toolbox
-        tags: latest
-        tag_with_ref: true
-        tag_with_sha: true
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        load: true
+        tags: bboykov/toolbox:latest
+        cache-from: type=registry,ref=bboykov/toolbox:latest
+        cache-to: type=inline
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@0.12.0
+      with:
+        image-ref: bboykov/toolbox:latest
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Run Trivy vulnerability scanner (table output)
+      uses: aquasecurity/trivy-action@0.12.0
+      with:
+        image-ref: bboykov/toolbox:latest
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        severity: 'CRITICAL,HIGH'
+        trivyignores: '.trivyignore'
+
+    - name: Push Docker image
+      uses: docker/build-push-action@v4
+      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+      with:
+        context: .
+        push: true
+        tags: |
+          bboykov/toolbox:latest
+          bboykov/toolbox:${{ github.sha }}
+        cache-from: type=registry,ref=bboykov/toolbox:latest
+        cache-to: type=inline
