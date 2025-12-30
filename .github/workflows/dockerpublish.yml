@@ -4,8 +4,9 @@ name: Docker
 #
 # This workflow builds the toolbox Docker image, runs security vulnerability scanning,
 # and publishes the image to Docker Hub. It runs on:
-# - Push to master branch
+# - Push to master branch (tags with latest and SHA)
 # - Pull requests targeting master branch
+# - Semver tags (v*.*.*, tags with latest, semver, and SHA)
 # - Release creation
 # - GitHub Pages builds
 #
@@ -13,10 +14,12 @@ name: Docker
 # 1. Build Docker image with Buildx caching
 # 2. Scan for vulnerabilities with Trivy (SARIF upload to Security tab)
 # 3. Run Trivy table scan (fails on CRITICAL/HIGH vulnerabilities, except ignored)
-# 4. Push image to Docker Hub with latest and SHA tags (only on master pushes)
+# 4. Push image to Docker Hub (latest+SHA for master, semver+SHA for tags)
 on:
   push:
     branches: [ master ]
+    tags:
+      - 'v*.*.*'      # Matches v1.0.0, v2.1.3, etc.
   pull_request:
     branches: [ master ]
   page_build:
@@ -74,7 +77,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
         trivyignores: '.trivyignore'
 
-    - name: Push Docker image
+    - name: Push Docker image (master branch)
       uses: docker/build-push-action@v4
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
       with:
@@ -82,6 +85,19 @@ jobs:
         push: true
         tags: |
           bboykov/toolbox:latest
+          bboykov/toolbox:${{ github.sha }}
+        cache-from: type=registry,ref=bboykov/toolbox:latest
+        cache-to: type=inline
+
+    - name: Push Docker image (semver tags)
+      uses: docker/build-push-action@v4
+      if: success() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      with:
+        context: .
+        push: true
+        tags: |
+          bboykov/toolbox:latest
+          bboykov/toolbox:${{ github.ref_name }}
           bboykov/toolbox:${{ github.sha }}
         cache-from: type=registry,ref=bboykov/toolbox:latest
         cache-to: type=inline
