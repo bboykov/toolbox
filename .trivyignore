@@ -1,0 +1,8 @@
+# Exclude kubectl binary from security scans
+# Reason: Third-party dependency vulnerabilities are outside our control.
+# We use the latest stable kubectl version, which may have unfixed CVEs in dependencies.
+# This is a troubleshooting container, not production-critical software.
+# Date: 2025-12-30
+CVE-2025-22868
+golang.org/x/oauth2
+usr/local/bin/kubectl

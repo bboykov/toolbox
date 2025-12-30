@@ -3,18 +3,21 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-WORKDIR="/tmp"
+install_aws_cli() {
+  echo "Installing AWS CLI..."
 
-if [ $EUID -ne 0 ]; then
-  echo "Run as root or use sudo"
-  exit 1
-fi
+  local temp_dir
+  temp_dir=$(mktemp -d)
+  trap 'rm -rf "${temp_dir:-}"' EXIT
 
-cd "$WORKDIR"
+  cd "${temp_dir}"
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install --update
+  unzip -q awscliv2.zip
+  ./aws/install
 
-rm awscliv2.zip
-rm -rf ./aws/
+  echo "AWS CLI installed successfully"
+  aws --version
+}
+
+install_aws_cli "$@"
