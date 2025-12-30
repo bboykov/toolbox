@@ -46,6 +46,27 @@ get_awscli.sh
 get_kubectl.sh --version v1.31.0
 ```
 
+## Releases & Versioning
+
+This repository uses semantic versioning (semver) with Git tags and GitHub releases.
+
+**Docker Images:**
+- `latest`: Always points to the most recent master build
+- `vX.Y.Z`: Semver-tagged releases (e.g., `v1.0.0`, `v1.0.1`)
+- SHA tags: Traceability to specific commits
+
+**Pull specific versions:**
+```sh
+# Latest
+docker pull bboykov/toolbox:latest
+
+# Specific release
+docker pull bboykov/toolbox:v1.0.1
+```
+
+**GitHub Releases:**
+Tagged releases are available under [Releases](https://github.com/bboykov/toolbox/releases) with release notes.
+
 ## Local Development
 
 Use the included Makefile for common tasks:
